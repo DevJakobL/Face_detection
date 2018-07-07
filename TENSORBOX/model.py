@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import json
-
-import cv2
 import tensorflow.contrib.slim as slim
 import random
 import time
@@ -11,8 +9,10 @@ import os
 import threading
 import tensorflow as tf
 import numpy as np
-from scipy import misc
+import scipy.misc as misc
 from distutils.version import LooseVersion
+import cv2
+
 if LooseVersion(tf.__version__) >= LooseVersion('1.0'):
     rnn_cell = tf.contrib.rnn
 else:
@@ -401,7 +401,7 @@ class TensorBox(object):
 
                     num_images = 10
                     img_path = os.path.join(self.H['save_dir'], '%s_%s.jpg' % ((np_global_step / self.H['logging']['display_iter']) % num_images, pred_or_true))
-                    misc.imsave(img_path, merged)
+                    cv2.imwrite(img_path, merged)
                     return merged
 
                 pred_log_img = tf.py_func(log_image,
@@ -583,7 +583,7 @@ class TensorBox(object):
                 pred_annolist.append(pred_anno)
                 
                 imname = '%s/%s' % (image_dir, os.path.basename(true_anno.imageName))
-                misc.imsave(imname, new_img)
+                cv2.imwrite(imname, new_img)
                 if i % 25 == 0:
                     print(i)
         return pred_annolist, true_annolist

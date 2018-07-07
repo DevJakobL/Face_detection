@@ -1,19 +1,17 @@
-import tensorflow as tf
-import os
+import argparse
 import json
+import os
+import random
 import subprocess
-from scipy.misc import imread, imresize
-from scipy import misc
-
-from train import build_forward
-from utils.annolist import AnnotationLib as al
-from utils.train_utils import add_rectangles, rescale_boxes
-from tensorflow.python.tools import freeze_graph
+from time import time
 
 import cv2
-import argparse
-import random
-from time import time
+import tensorflow as tf
+from scipy import misc
+
+from utils.annolist import AnnotationLib as al
+from utils.train_utils import add_rectangles, rescale_boxes
+
 
 def get_image_dir(args):
     weights_iteration = int(args.weights.split('-')[-1]) if args.weights else "production"
@@ -73,12 +71,12 @@ def get_results(args, H, data_dir):
         for i in range(len(image_names)):
             image_name = image_names[i]
             if H['grayscale']:
-                orig_img = imread('%s/%s' % (data_dir, image_name), mode = 'RGB' if random.random() < H['grayscale_prob'] else 'L')
+                orig_img =cv2.imread('%s/%s' % (data_dir, image_name), mode = 'RGB' if random.random() < H['grayscale_prob'] else 'L')
                 if len(orig_img.shape) < 3:
                     orig_img = cv2.cvtColor(orig_img, cv2.COLOR_GRAY2RGB)
             else:
-                orig_img = imread('%s/%s' % (data_dir, image_name), mode = 'RGB')
-            img = imresize(orig_img, (H["image_height"], H["image_width"]), interp='cubic')
+                orig_img = cv2.imread('%s/%s' % (data_dir, image_name), mode = 'RGB')
+            img = cv2.resize(orig_img, (H["image_height"], H["image_width"]), interp='cubic')
             feed = {x_in: img}
             start_time = time()
             (np_pred_boxes, np_pred_confidences) = sess.run([pred_boxes, pred_confidences], feed_dict=feed)

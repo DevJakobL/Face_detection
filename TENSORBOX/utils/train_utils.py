@@ -1,16 +1,21 @@
 import numpy as np
+import cv2
 import random
 import json
 import os
-import cv2
 import itertools
-from scipy.misc import imread, imresize
 import tensorflow as tf
+from data_utils import (annotation_jitter, annotation_to_h5)
+from annolist import AnnotationLib as al
+from rect import Rect
+from distutils.version import LooseVersion
 
-from utils.data_utils import (annotation_jitter, annotation_to_h5)
-from utils.annolist import AnnotationLib as al
-from utils.rect import Rect
-from utils import tf_concat
+def tf_concat(axis, values, **kwargs):
+    TENSORFLOW_VERSION = LooseVersion(tf.__version__)
+    if TENSORFLOW_VERSION >= LooseVersion('1.0'):
+        return tf.concat(values, axis, **kwargs)
+    else:
+        return tf.concat(axis, values, **kwargs)
 
 def rescale_boxes(current_shape, anno, target_height, target_width, test=False):
     x_scale = target_width / float(current_shape[1])
@@ -19,14 +24,14 @@ def rescale_boxes(current_shape, anno, target_height, target_width, test=False):
         if r.x1 >= r.x2:
             if test:
                 r.x1, r.x2 = r.x2, r.x1
-            else:   
+            else:
                 assert r.x1 < r.x2
         r.x1 *= x_scale
         r.x2 *= x_scale
         if r.y1 >= r.y2:
             if test:
                 r.y1, r.y2 = r.y2, r.y1
-            else:   
+            else:
                 assert r.y1 < r.y2
         r.y1 *= y_scale
         r.y2 *= y_scale
@@ -51,17 +56,19 @@ def load_idl_tf(idlfile, H, jitter):
         for anno in annos:
             try:
                 if 'grayscale' in H and 'grayscale_prob' in H:
-                    I = imread(anno.imageName, mode = 'RGB' if random.random() < H['grayscale_prob'] else 'L')
+                    I = cv2.imread(anno.imageName)
+                    cv2.cvtColor(I,cv2.COLOR_BGR2RGB)
                     if len(I.shape) < 3:
                         I = cv2.cvtColor(I, cv2.COLOR_GRAY2RGB)
                 else:
                     if len(I.shape) < 3:
                         continue
-                    I = imread(anno.imageName, mode = 'RGB')
+                    I = cv2.imread(anno.imageName)
+                    cv2.cvtColor(I,cv2.COLOR_BGR2RGB)
                 if I.shape[0] != H["image_height"] or I.shape[1] != H["image_width"]:
                     if epoch == 0:
                         anno = rescale_boxes(I.shape, anno, H["image_height"], H["image_width"])
-                    I = imresize(I, (H["image_height"], H["image_width"]), interp='cubic')
+                    I = cv2.resize(I, (H["image_height"], H["image_width"]), interp='cubic')
                 if jitter:
                     jitter_scale_min=0.9
                     jitter_scale_max=1.1
@@ -152,10 +159,10 @@ def add_rectangles(H, orig_image, confidences, boxes, use_stitching=False, rnn_l
         for rect in rect_set:
             if rect.confidence > min_conf:
                 cv2.rectangle(image,
-                    (rect.cx-int(rect.width/2), rect.cy-int(rect.height/2)),
-                    (rect.cx+int(rect.width/2), rect.cy+int(rect.height/2)),
-                    color,
-                    1)
+                              (rect.cx-int(rect.width/2), rect.cy-int(rect.height/2)),
+                              (rect.cx+int(rect.width/2), rect.cy+int(rect.height/2)),
+                              color,
+                              1)
 
     cv2.putText(image,str(len(filter(lambda rect:rect.confidence > min_conf, acc_rects))), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,255),2)
 
