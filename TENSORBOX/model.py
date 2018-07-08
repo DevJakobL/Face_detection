@@ -30,9 +30,11 @@ from utils import train_utils, googlenet_load, tf_concat
 from utils.annolist import AnnotationLib as al
 from utils.train_utils import add_rectangles, rescale_boxes
 
-@ops.RegisterGradient("Hungarian")     
-def _hungarian_grad(op, *args):       
+
+@ops.RegisterGradient("Hungarian")
+def _hungarian_grad(op, *args):
     return map(array_ops.zeros_like, op.inputs)
+
 
 def deconv(x, output_shape, channels):
     k_h = 2
@@ -41,6 +43,7 @@ def deconv(x, output_shape, channels):
                         shape=[k_h, k_w, channels[1], channels[0]])
     y = tf.nn.conv2d_transpose(x, w, output_shape, strides=[1, k_h, k_w, 1], padding='VALID')
     return y
+
 
 def rezoom(H, pred_boxes, early_feat, early_feat_channels, w_offsets, h_offsets):
     '''
@@ -57,7 +60,6 @@ def rezoom(H, pred_boxes, early_feat, early_feat_channels, w_offsets, h_offsets)
 
     Where each letter indexes into the feature map with bilinear interpolation
     '''
-
 
     grid_size = H['grid_width'] * H['grid_height']
     outer_size = grid_size * H['batch_size']
@@ -85,6 +87,7 @@ def rezoom(H, pred_boxes, early_feat, early_feat_channels, w_offsets, h_offsets)
                        H['rnn_len'],
                        len(w_offsets) * len(h_offsets) * early_feat_channels])
 
+
 class TensorBox(object):
     def __init__(self, H):
         self.H = H
@@ -108,10 +111,12 @@ class TensorBox(object):
         '''
 
         def get_lstm_cell(H):
-            return rnn_cell.BasicLSTMCell(H['lstm_size'], forget_bias=0.0, state_is_tuple=True, reuse=tf.get_variable_scope().reuse)
+            return rnn_cell.BasicLSTMCell(H['lstm_size'], forget_bias=0.0, state_is_tuple=True,
+                                          reuse=tf.get_variable_scope().reuse)
 
         if self.H['num_lstm_layers'] > 1:
-            lstm = rnn_cell.MultiRNNCell([get_lstm_cell(self.H) for _ in range(self.H['num_lstm_layers'])], state_is_tuple=True)
+            lstm = rnn_cell.MultiRNNCell([get_lstm_cell(self.H) for _ in range(self.H['num_lstm_layers'])],
+                                         state_is_tuple=True)
         else:
             lstm = get_lstm_cell(self.H)
 
@@ -145,7 +150,8 @@ class TensorBox(object):
             pool_size = 5
 
             with tf.variable_scope("deconv", reuse=reuse):
-                w = tf.get_variable('conv_pool_w', shape=[size, size, self.H['later_feat_channels'], self.H['later_feat_channels']],
+                w = tf.get_variable('conv_pool_w',
+                                    shape=[size, size, self.H['later_feat_channels'], self.H['later_feat_channels']],
                                     initializer=tf.random_normal_initializer(stddev=0.01))
                 cnn_s = tf.nn.conv2d(cnn, w, strides=[1, stride, stride, 1], padding='SAME')
                 cnn_s_pool = tf.nn.avg_pool(cnn_s[:, :, :, :256], ksize=[1, pool_size, pool_size, 1],
@@ -153,7 +159,8 @@ class TensorBox(object):
 
                 cnn_s_with_pool = tf_concat(3, [cnn_s_pool, cnn_s[:, :, :, 256:]])
                 cnn_deconv = deconv(cnn_s_with_pool,
-                                    output_shape=[self.H['batch_size'], self.H['grid_height'], self.H['grid_width'], 256],
+                                    output_shape=[self.H['batch_size'], self.H['grid_height'], self.H['grid_width'],
+                                                  256],
                                     channels=[self.H['later_feat_channels'], 256])
                 cnn = tf_concat(3, (cnn_deconv, cnn[:, :, :, 256:]))
 
@@ -163,9 +170,10 @@ class TensorBox(object):
             cnn2 = cnn[:, :, :, 700:]
             cnn2 = tf.nn.avg_pool(cnn2, ksize=[1, pool_size, pool_size, 1],
                                   strides=[1, 1, 1, 1], padding='SAME')
-            cnn = tf_concat(3, [cnn1, cnn2])  
+            cnn = tf_concat(3, [cnn1, cnn2])
         cnn = tf.reshape(cnn,
-                         [self.H['batch_size'] * self.H['grid_width'] * self.H['grid_height'], self.H['later_feat_channels']])
+                         [self.H['batch_size'] * self.H['grid_width'] * self.H['grid_height'],
+                          self.H['later_feat_channels']])
         initializer = tf.random_uniform_initializer(-0.1, 0.1)
         with tf.variable_scope('decoder', reuse=reuse, initializer=initializer):
             scale_down = 0.01
@@ -191,7 +199,7 @@ class TensorBox(object):
 
                 pred_boxes.append(pred_boxes_step)
                 pred_logits.append(tf.reshape(tf.matmul(output, conf_weights),
-                                             [outer_size, 1, self.H['num_classes']]))
+                                              [outer_size, 1, self.H['num_classes']]))
 
             pred_boxes = tf_concat(1, pred_boxes)
             pred_logits = tf_concat(1, pred_logits)
@@ -214,19 +222,19 @@ class TensorBox(object):
                     delta_features = tf_concat(1, [lstm_outputs[k], rezoom_features[:, k, :] / 1000.])
                     dim = 128
                     delta_weights1 = tf.get_variable(
-                                        'delta_ip1%d' % k,
-                                        shape=[self.H['lstm_size'] + early_feat_channels * num_offsets, dim])
+                        'delta_ip1%d' % k,
+                        shape=[self.H['lstm_size'] + early_feat_channels * num_offsets, dim])
                     # TODO: add dropout here ?
                     ip1 = tf.nn.relu(tf.matmul(delta_features, delta_weights1))
                     if phase == 'train':
                         ip1 = tf.nn.dropout(ip1, 0.5)
                     delta_confs_weights = tf.get_variable(
-                                        'delta_ip2%d' % k,
-                                        shape=[dim, self.H['num_classes']])
+                        'delta_ip2%d' % k,
+                        shape=[dim, self.H['num_classes']])
                     if self.H['reregress']:
                         delta_boxes_weights = tf.get_variable(
-                                            'delta_ip_boxes%d' % k,
-                                            shape=[dim, 4])
+                            'delta_ip_boxes%d' % k,
+                            shape=[dim, 4])
                         pred_boxes_deltas.append(tf.reshape(tf.matmul(ip1, delta_boxes_weights) * 5,
                                                             [outer_size, 1, 4]))
                     scale = self.H.get('rezoom_conf_scale', 50)
@@ -268,7 +276,7 @@ class TensorBox(object):
                                       [outer_size * self.H['rnn_len'], self.H['num_classes']])
             confidences_loss = (tf.reduce_sum(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred_logit_r, labels=true_classes))
-                ) / outer_size * self.H['solver']['head_weights'][0]
+                               ) / outer_size * self.H['solver']['head_weights'][0]
             residual = tf.reshape(perm_truth - pred_boxes * pred_mask,
                                   [outer_size, self.H['rnn_len'], 4])
             boxes_loss = tf.reduce_sum(tf.abs(residual)) / outer_size * self.H['solver']['head_weights'][1]
@@ -276,7 +284,8 @@ class TensorBox(object):
                 if self.H['rezoom_change_loss'] == 'center':
                     error = (perm_truth[:, :, 0:2] - pred_boxes[:, :, 0:2]) / tf.maximum(perm_truth[:, :, 2:4], 1.)
                     square_error = tf.reduce_sum(tf.square(error), 2)
-                    inside = tf.reshape(tf.to_int64(tf.logical_and(tf.less(square_error, 0.2**2), tf.greater(classes, 0))), [-1])
+                    inside = tf.reshape(
+                        tf.to_int64(tf.logical_and(tf.less(square_error, 0.2 ** 2), tf.greater(classes, 0))), [-1])
                 elif self.H['rezoom_change_loss'] == 'iou':
                     iou = train_utils.iou(train_utils.to_x1y1x2y2(tf.reshape(pred_boxes, [-1, 4])),
                                           train_utils.to_x1y1x2y2(tf.reshape(perm_truth, [-1, 4])))
@@ -285,20 +294,21 @@ class TensorBox(object):
                     assert self.H['rezoom_change_loss'] == False
                     inside = tf.reshape(tf.to_int64((tf.greater(classes, 0))), [-1])
                 new_confs = tf.reshape(pred_confs_deltas, [outer_size * self.H['rnn_len'], self.H['num_classes']])
-                delta_confs_loss = (tf.reduce_sum( tf.nn.sparse_softmax_cross_entropy_with_logits(logits=new_confs, labels=inside)) /
-                    outer_size * self.H['solver']['head_weights'][0] * 0.1)
+                delta_confs_loss = (tf.reduce_sum(
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(logits=new_confs, labels=inside)) /
+                                    outer_size * self.H['solver']['head_weights'][0] * 0.1)
 
                 pred_logits_squash = tf.reshape(new_confs,
                                                 [outer_size * self.H['rnn_len'], self.H['num_classes']])
                 pred_confidences_squash = tf.nn.softmax(pred_logits_squash)
                 pred_confidences = tf.reshape(pred_confidences_squash,
-                                          [outer_size, self.H['rnn_len'], self.H['num_classes']])
+                                              [outer_size, self.H['rnn_len'], self.H['num_classes']])
                 loss = confidences_loss + boxes_loss + delta_confs_loss
                 if self.H['reregress']:
                     delta_residual = tf.reshape(perm_truth - (pred_boxes + pred_boxes_deltas) * pred_mask,
                                                 [outer_size, self.H['rnn_len'], 4])
                     delta_boxes_loss = (tf.reduce_sum(tf.minimum(tf.square(delta_residual), 10. ** 2)) /
-                                   outer_size * self.H['solver']['head_weights'][1] * 0.03)
+                                        outer_size * self.H['solver']['head_weights'][1] * 0.03)
                     boxes_loss = delta_boxes_loss
 
                     tf.summary.histogram(phase + '/delta_hist0_x', pred_boxes_deltas[:, 0, 0])
@@ -319,9 +329,9 @@ class TensorBox(object):
         arch = self.H
         solver = self.H["solver"]
 
-        #os.environ['CUDA_VISIBLE_DEVICES'] = str(solver.get('gpu', ''))
+        # os.environ['CUDA_VISIBLE_DEVICES'] = str(solver.get('gpu', ''))
 
-        #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
+        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
         gpu_options = tf.GPUOptions()
         print(gpu_options)
         config = tf.ConfigProto(gpu_options=gpu_options)
@@ -332,7 +342,7 @@ class TensorBox(object):
                                             decay=0.9, epsilon=solver['epsilon'])
         elif solver['opt'] == 'Adam':
             opt = tf.train.AdamOptimizer(learning_rate=learning_rate,
-                                            epsilon=solver['epsilon'])
+                                         epsilon=solver['epsilon'])
         elif solver['opt'] == 'SGD':
             opt = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
         else:
@@ -343,19 +353,18 @@ class TensorBox(object):
             x, confidences, boxes = q[phase].dequeue_many(arch['batch_size'])
             flags = tf.argmax(confidences, 3)
 
-
             grid_size = self.H['grid_width'] * self.H['grid_height']
 
             (pred_boxes, pred_confidences,
              loss[phase], confidences_loss[phase],
              boxes_loss[phase]) = self.build_forward_backward(x, phase, boxes, flags)
-            pred_confidences_r = tf.reshape(pred_confidences, [self.H['batch_size'], grid_size, self.H['rnn_len'], arch['num_classes']])
+            pred_confidences_r = tf.reshape(pred_confidences,
+                                            [self.H['batch_size'], grid_size, self.H['rnn_len'], arch['num_classes']])
             pred_boxes_r = tf.reshape(pred_boxes, [self.H['batch_size'], grid_size, self.H['rnn_len'], 4])
-
 
             # Set up summary operations for tensorboard
             a = tf.equal(tf.argmax(confidences[:, :, 0, :], 2), tf.argmax(pred_confidences_r[:, :, 0, :], 2))
-            accuracy[phase] = tf.reduce_mean(tf.cast(a, 'float32'), name=phase+'/accuracy')
+            accuracy[phase] = tf.reduce_mean(tf.cast(a, 'float32'), name=phase + '/accuracy')
 
             if phase == 'train':
                 global_step = tf.Variable(0, trainable=False)
@@ -378,10 +387,10 @@ class TensorBox(object):
                     tf.summary.scalar('%s/accuracy/smooth' % p, moving_avg.average(accuracy[p]))
                     tf.summary.scalar("%s/confidences_loss" % p, confidences_loss[p])
                     tf.summary.scalar("%s/confidences_loss/smooth" % p,
-                        moving_avg.average(confidences_loss[p]))
+                                      moving_avg.average(confidences_loss[p]))
                     tf.summary.scalar("%s/regression_loss" % p, boxes_loss[p])
                     tf.summary.scalar("%s/regression_loss/smooth" % p,
-                        moving_avg.average(boxes_loss[p]))
+                                      moving_avg.average(boxes_loss[p]))
 
             if phase == 'test':
                 test_image = x
@@ -394,13 +403,13 @@ class TensorBox(object):
                 test_pred_boxes = pred_boxes_r[0, :, :, :]
 
                 def log_image(np_img, np_confidences, np_boxes, np_global_step, pred_or_true):
-
                     merged = train_utils.add_rectangles(self.H, np_img, np_confidences, np_boxes,
                                                         use_stitching=True,
                                                         rnn_len=self.H['rnn_len'], show_suppressed=True)[0]
 
                     num_images = 10
-                    img_path = os.path.join(self.H['save_dir'], '%s_%s.jpg' % ((np_global_step / self.H['logging']['display_iter']) % num_images, pred_or_true))
+                    img_path = os.path.join(self.H['save_dir'], '%s_%s.jpg' % (
+                    (np_global_step / self.H['logging']['display_iter']) % num_images, pred_or_true))
                     cv2.imwrite(img_path, merged)
                     return merged
 
@@ -417,7 +426,6 @@ class TensorBox(object):
 
         return (config, loss, accuracy, summary_op, train_op,
                 smooth_op, global_step, learning_rate)
-
 
     def train(self):
         '''
@@ -445,7 +453,7 @@ class TensorBox(object):
                 [self.H['image_height'], self.H['image_width'], 3],
                 [grid_size, self.H['rnn_len'], self.H['num_classes']],
                 [grid_size, self.H['rnn_len'], 4],
-                )
+            )
             q[phase] = tf.FIFOQueue(capacity=30, dtypes=dtypes, shapes=shapes)
             enqueue_op[phase] = q[phase].enqueue((x_in, confs_in, boxes_in))
 
@@ -487,16 +495,17 @@ class TensorBox(object):
                 saver.restore(sess, weights_str)
             elif self.H['slim_basename'] == 'MobilenetV1':
                 saver.restore(sess, self.H['slim_ckpt'])
-            else :
-                gvars = [x for x in tf.global_variables() if x.name.startswith(self.H['slim_basename']) and self.H['solver']['opt'] not in x.name]
+            else:
+                gvars = [x for x in tf.global_variables() if
+                         x.name.startswith(self.H['slim_basename']) and self.H['solver']['opt'] not in x.name]
                 gvars = [x for x in gvars if not x.name.startswith("{}/AuxLogits".format(self.H['slim_basename']))]
                 init_fn = slim.assign_from_checkpoint_fn(
-                      '%s/data/%s' % (os.path.dirname(os.path.realpath(__file__)), self.H['slim_ckpt']),
-                      gvars,
-                      ignore_missing_vars=False)
-                #init_fn = slim.assign_from_checkpoint_fn(
-                      #'%s/data/inception_v1.ckpt' % os.path.dirname(os.path.realpath(__file__)),
-                      #[x for x in tf.global_variables() if x.name.startswith('InceptionV1') and not self.H['solver']['opt'] in x.name])
+                    '%s/data/%s' % (os.path.dirname(os.path.realpath(__file__)), self.H['slim_ckpt']),
+                    gvars,
+                    ignore_missing_vars=False)
+                # init_fn = slim.assign_from_checkpoint_fn(
+                # '%s/data/inception_v1.ckpt' % os.path.dirname(os.path.realpath(__file__)),
+                # [x for x in tf.global_variables() if x.name.startswith('InceptionV1') and not self.H['solver']['opt'] in x.name])
                 init_fn(sess)
 
             # train model for N iterations
@@ -517,9 +526,9 @@ class TensorBox(object):
                         dt = (time.time() - start) / (self.H['batch_size'] * display_iter)
                     start = time.time()
                     (train_loss, test_accuracy, summary_str,
-                        _, _) = sess.run([loss['train'], accuracy['test'],
-                                          summary_op, train_op, smooth_op,
-                                         ], feed_dict=lr_feed)
+                     _, _) = sess.run([loss['train'], accuracy['test'],
+                                       summary_op, train_op, smooth_op,
+                                       ], feed_dict=lr_feed)
                     writer.add_summary(summary_str, global_step=global_step.eval())
                     print_str = string.join([
                         'Step: %d',
@@ -538,7 +547,8 @@ class TensorBox(object):
     def get_image_dir(self, weights, expname, test_boxes):
         weights_iteration = int(weights.split('-')[-1])
         expname = '_' + expname if expname else ''
-        image_dir = '%s/images_%s_%d%s' % (os.path.dirname(weights), os.path.basename(test_boxes)[:-5], weights_iteration, expname)
+        image_dir = '%s/images_%s_%d%s' % (
+        os.path.dirname(weights), os.path.basename(test_boxes)[:-5], weights_iteration, expname)
         return image_dir
 
     def eval(self, weights, test_boxes, min_conf, tau, show_suppressed, expname):
@@ -546,10 +556,12 @@ class TensorBox(object):
         self.H["grid_height"] = self.H["image_height"] / self.H["region_size"]
         x_in = tf.placeholder(tf.float32, name='x_in', shape=[self.H['image_height'], self.H['image_width'], 3])
         if self.H['use_rezoom']:
-            pred_boxes, pred_logits, pred_confidences, pred_confs_deltas, pred_boxes_deltas = self.build_forward(tf.expand_dims(x_in, 0), 'test', reuse=None)
+            pred_boxes, pred_logits, pred_confidences, pred_confs_deltas, pred_boxes_deltas = self.build_forward(
+                tf.expand_dims(x_in, 0), 'test', reuse=None)
             grid_area = self.H['grid_height'] * self.H['grid_width']
-            pred_confidences = tf.reshape(tf.nn.softmax(tf.reshape(pred_confs_deltas, [grid_area * self.H['rnn_len'], 2])),
-                                          [grid_area, self.H['rnn_len'], 2])
+            pred_confidences = tf.reshape(
+                tf.nn.softmax(tf.reshape(pred_confs_deltas, [grid_area * self.H['rnn_len'], 2])),
+                [grid_area, self.H['rnn_len'], 2])
             if self.H['reregress']:
                 pred_boxes = pred_boxes + pred_boxes_deltas
         else:
@@ -567,21 +579,23 @@ class TensorBox(object):
             subprocess.call('mkdir -p %s' % image_dir, shell=True)
             for i in range(len(true_annolist)):
                 true_anno = true_annolist[i]
-                orig_img = cv2.imread('%s/%s' % (data_dir, true_anno.imageName))[:,:,:3]
+                orig_img = cv2.imread('%s/%s' % (data_dir, true_anno.imageName))[:, :, :3]
                 cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
-                img = cv2.resize(orig_img, (self.H["image_height"], self.H["image_width"]))
+                img = cv2.resize(orig_img, (self.H["image_width"], self.H["image_height"]))
                 feed = {x_in: img}
                 (np_pred_boxes, np_pred_confidences) = sess.run([pred_boxes, pred_confidences], feed_dict=feed)
                 pred_anno = al.Annotation()
                 pred_anno.imageName = true_anno.imageName
                 new_img, rects = add_rectangles(self.H, [img], np_pred_confidences, np_pred_boxes,
-                                                use_stitching=True, rnn_len=self.H['rnn_len'], min_conf=min_conf, tau=tau, show_suppressed=show_suppressed)
-            
+                                                use_stitching=True, rnn_len=self.H['rnn_len'], min_conf=min_conf,
+                                                tau=tau, show_suppressed=show_suppressed)
+
                 pred_anno.rects = rects
                 pred_anno.imagePath = os.path.abspath(data_dir)
-                pred_anno = rescale_boxes((self.H["image_height"], self.H["image_width"]), pred_anno, orig_img.shape[0], orig_img.shape[1])
+                pred_anno = rescale_boxes((self.H["image_height"], self.H["image_width"]), pred_anno, orig_img.shape[0],
+                                          orig_img.shape[1])
                 pred_annolist.append(pred_anno)
-                
+
                 imname = '%s/%s' % (image_dir, os.path.basename(true_anno.imageName))
                 cv2.imwrite(imname, new_img)
                 if i % 25 == 0:

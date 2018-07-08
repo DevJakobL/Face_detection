@@ -6,7 +6,7 @@
     },
     "logging": {
         "display_iter": 50,
-        "save_iter": 10000
+        "save_iter": 50
     },
     "solver": {
         "opt": "RMS",
@@ -14,7 +14,7 @@
         "rnd_seed": 1,
         "epsilon": 0.00001, 
         "learning_rate": 0.001, 
-        "learning_rate_step": 33000, 
+        "learning_rate_step": 100,
         "hungarian_iou": 0.25,
         "weights": "",
         "head_weights": [1.0, 0.1]
