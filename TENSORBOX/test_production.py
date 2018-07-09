@@ -71,12 +71,14 @@ def get_results(args, H, data_dir):
         for i in range(len(image_names)):
             image_name = image_names[i]
             if H['grayscale']:
-                orig_img =cv2.imread('%s/%s' % (data_dir, image_name), mode = 'RGB' if random.random() < H['grayscale_prob'] else 'L')
+                orig_img = cv2.imread(image_name)
+                cv2.cvtColor(orig_img,cv2.COLOR_BGR2RGB)
                 if len(orig_img.shape) < 3:
                     orig_img = cv2.cvtColor(orig_img, cv2.COLOR_GRAY2RGB)
             else:
-                orig_img = cv2.imread('%s/%s' % (data_dir, image_name), mode = 'RGB')
-            img = cv2.resize(orig_img, (H["image_height"], H["image_width"]), interp='cubic')
+                orig_img = cv2.imread('%s/%s' % (data_dir, image_name))
+                cv2.cvtColor(orig_img,cv2.COLOR_BGR2RGB)
+            img = cv2.resize(orig_img, (H["image_width"],H["image_height"]), interpolation=cv2.INTER_CUBIC)
             feed = {x_in: img}
             start_time = time()
             (np_pred_boxes, np_pred_confidences) = sess.run([pred_boxes, pred_confidences], feed_dict=feed)

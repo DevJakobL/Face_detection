@@ -9,7 +9,6 @@ import os
 import threading
 import tensorflow as tf
 import numpy as np
-import scipy.misc as misc
 from distutils.version import LooseVersion
 import cv2
 
@@ -579,7 +578,7 @@ class TensorBox(object):
             subprocess.call('mkdir -p %s' % image_dir, shell=True)
             for i in range(len(true_annolist)):
                 true_anno = true_annolist[i]
-                orig_img = cv2.imread('%s/%s' % (data_dir, true_anno.imageName))[:, :, :3]
+                orig_img = cv2.imread(true_anno.imageName)[:, :, :3]
                 cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
                 img = cv2.resize(orig_img, (self.H["image_width"], self.H["image_height"]))
                 feed = {x_in: img}
@@ -597,6 +596,9 @@ class TensorBox(object):
                 pred_annolist.append(pred_anno)
 
                 imname = '%s/%s' % (image_dir, os.path.basename(true_anno.imageName))
+                cv2.imshow('IMG',new_img)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
                 cv2.imwrite(imname, new_img)
                 if i % 25 == 0:
                     print(i)

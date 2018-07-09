@@ -68,7 +68,7 @@ def load_idl_tf(idlfile, H, jitter):
                 if I.shape[0] != H["image_height"] or I.shape[1] != H["image_width"]:
                     if epoch == 0:
                         anno = rescale_boxes(I.shape, anno, H["image_height"], H["image_width"])
-                    I = cv2.resize(I, (H["image_height"], H["image_width"]), interp='cubic')
+                    I = cv2.resize(I, (H["image_width"],H["image_height"]), interpolation=cv2.INTER_CUBIC)
                 if jitter:
                     jitter_scale_min=0.9
                     jitter_scale_max=1.1
