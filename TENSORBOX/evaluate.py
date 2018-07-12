@@ -37,18 +37,19 @@ def main():
     true_annolist.save(true_boxes)
 
     try:
-        rpc_cmd = './utils/annolist/doRPC.py --minOverlap %f %s %s' % (args.iou_threshold, true_boxes, pred_boxes)
+        rpc_cmd = os.getcwd()+'/utils/annolist/doRPC.py --minOverlap %f %s %s' % (args.iou_threshold, true_boxes, pred_boxes)
         print('$ %s' % rpc_cmd)
         rpc_output = subprocess.check_output(rpc_cmd, shell=True)
         print(rpc_output)
         txt_file = [line for line in rpc_output.split('\n') if line.strip()][-1]
         output_png = '%s/results.png' % tensorbox.get_image_dir(args.weights, expname, args.test_boxes)
-        plot_cmd = './utils/annolist/plotSimple.py %s --output %s' % (txt_file, output_png)
+        plot_cmd = os.getcwd()+'/utils/annolist/plotSimple.py %s --output %s' % (txt_file, output_png)
         print('$ %s' % plot_cmd)
         plot_output = subprocess.check_output(plot_cmd, shell=True)
         print('output results at: %s' % plot_output)
     except Exception as e:
         print(e)
+
 
 if __name__ == '__main__':
     main()

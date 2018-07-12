@@ -170,9 +170,7 @@ class TensorBox(object):
             cnn2 = tf.nn.avg_pool(cnn2, ksize=[1, pool_size, pool_size, 1],
                                   strides=[1, 1, 1, 1], padding='SAME')
             cnn = tf_concat(3, [cnn1, cnn2])
-        cnn = tf.reshape(cnn,
-                         [self.H['batch_size'] * self.H['grid_width'] * self.H['grid_height'],
-                          self.H['later_feat_channels']])
+        cnn = tf.reshape(cnn, [self.H['batch_size'] * self.H['grid_width'] * self.H['grid_height'], self.H['later_feat_channels']])
         initializer = tf.random_uniform_initializer(-0.1, 0.1)
         with tf.variable_scope('decoder', reuse=reuse, initializer=initializer):
             scale_down = 0.01
@@ -408,7 +406,7 @@ class TensorBox(object):
 
                     num_images = 10
                     img_path = os.path.join(self.H['save_dir'], '%s_%s.jpg' % (
-                    (np_global_step / self.H['logging']['display_iter']) % num_images, pred_or_true))
+                        (np_global_step / self.H['logging']['display_iter']) % num_images, pred_or_true))
                     cv2.imwrite(img_path, merged)
                     return merged
 
@@ -547,7 +545,7 @@ class TensorBox(object):
         weights_iteration = int(weights.split('-')[-1])
         expname = '_' + expname if expname else ''
         image_dir = '%s/images_%s_%d%s' % (
-        os.path.dirname(weights), os.path.basename(test_boxes)[:-5], weights_iteration, expname)
+            os.path.dirname(weights), os.path.basename(test_boxes)[:-5], weights_iteration, expname)
         return image_dir
 
     def eval(self, weights, test_boxes, min_conf, tau, show_suppressed, expname):
@@ -576,7 +574,7 @@ class TensorBox(object):
             data_dir = os.path.dirname(test_boxes)
             image_dir = self.get_image_dir(weights, expname, test_boxes)
             subprocess.call('mkdir -p %s' % image_dir, shell=True)
-            for i in range(len(true_annolist)):
+            for i in range(5): #range(len(true_annolist)):
                 true_anno = true_annolist[i]
                 orig_img = cv2.imread(true_anno.imageName)[:, :, :3]
                 cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
@@ -596,9 +594,6 @@ class TensorBox(object):
                 pred_annolist.append(pred_anno)
 
                 imname = '%s/%s' % (image_dir, os.path.basename(true_anno.imageName))
-                cv2.imshow('IMG',new_img)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
                 cv2.imwrite(imname, new_img)
                 if i % 25 == 0:
                     print(i)

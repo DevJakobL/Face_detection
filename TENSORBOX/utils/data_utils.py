@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import copy
 import json
-import utils.annolist.AnnotationLib as al
+import annolist.AnnotationLib as al
 from xml.etree import ElementTree
 
 def annotation_to_h5(H, a, cell_width, cell_height, max_len):
