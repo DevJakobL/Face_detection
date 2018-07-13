@@ -4,10 +4,8 @@ import os
 import cv2
 import tensorflow as tf
 import numpy as np
-from TENSORBOX.utils import train_utils
 from TENSORBOX.model import TensorBox
 from TENSORBOX.utils.rect import Rect
-from TENSORBOX.utils.annolist import AnnotationLib as al
 
 
 def cut_out_faces(H, orig_image, confidences, boxes):
