@@ -12,15 +12,15 @@ from TENSORBOX.utils.annolist import AnnotationLib as al
 
 def cut_out_faces(H, orig_image, confidences, boxes):
     rnn_len = 1
-    tau=0.25
-    min_conf=0.1
+    tau = 0.25
+    min_conf = 0.1
     image = np.copy(orig_image[0])
-    num_cells = H["grid_height"] * H["grid_width"]
     boxes_r = np.reshape(boxes, (-1,
                                  H["grid_height"],
                                  H["grid_width"],
                                  rnn_len,
                                  4))
+
     confidences_r = np.reshape(confidences, (-1,
                                              H["grid_height"],
                                              H["grid_width"],
@@ -32,31 +32,37 @@ def cut_out_faces(H, orig_image, confidences, boxes):
         for y in range(H["grid_height"]):
             for x in range(H["grid_width"]):
                 bbox = boxes_r[0, y, x, n, :]
-                abs_cx = int(bbox[0]) + cell_pix_size/2 + cell_pix_size * x
-                abs_cy = int(bbox[1]) + cell_pix_size/2 + cell_pix_size * y
+                abs_cx = int(bbox[0]) + cell_pix_size / 2 + cell_pix_size * x
+                abs_cy = int(bbox[1]) + cell_pix_size / 2 + cell_pix_size * y
                 w = bbox[2]
                 h = bbox[3]
                 conf = np.max(confidences_r[0, y, x, n, 1:])
-                all_rects[y][x].append(Rect(abs_cx,abs_cy,w,h,conf))
+                all_rects[y][x].append(Rect(abs_cx, abs_cy, w, h, conf))
     from stitch_wrapper import stitch_rects
     acc_rects = stitch_rects(all_rects, tau)
+    im = []
+    for rect in acc_rects:
+        if rect.confidence > min_conf:
+            im.append(image[rect.cy - int(rect.height / 2):rect.cy + int(rect.height / 2),
+                      rect.cx - int(rect.width / 2):rect.cx + int(rect.width / 2)].copy())
+    return im
 
 
-    pairs = []
-    pairs.append((acc_rects, (0, 255, 0)))
-    for rect_set, color in pairs:
-        for rect in rect_set:
-            if rect.confidence > min_conf:
-                cv2.rectangle(image,
-                              (rect.cx-int(rect.width/2), rect.cy-int(rect.height/2)),
-                              (rect.cx+int(rect.width/2), rect.cy+int(rect.height/2)),
-                              color,
-                              1)
-    return image
+def save_images(images, output_dir, old_img_path):
+    ls = old_img_path.split('/')
+    name = ls[ls.__len__() - 1]
+    ln = name.split('.')
+    i = 0
+    tmp = os.path.join(os.getcwd(), output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(tmp)
+    for im in images:
+        img_parth = os.path.join(os.getcwd(), '%s/%s_%i.%s' % (output_dir, ln[0], i, ln[1]))
+        print img_parth
+        cv2.imwrite(img_parth, im)
 
 
-
-def testimg(img_path, weights):
+def testimg(img_path, weights, dir):
     hypes_file = '%s/hypes.json' % os.path.dirname(weights)
     with open(hypes_file, 'r') as f:
         H = json.load(f)
@@ -83,16 +89,15 @@ def testimg(img_path, weights):
         img = cv2.resize(orig_img, (640, 480))
         feed = {x_in: img}
         (np_pred_boxes, np_pred_confidences) = sess.run([pred_boxes, pred_confidences], feed_dict=feed)
-        new_img = cut_out_faces(H, [img], np_pred_confidences, np_pred_boxes)
-        cv2.imshow('img', new_img)
-        cv2.waitKey(0)
+        images = cut_out_faces(H, [img], np_pred_confidences, np_pred_boxes)
         sess.close()
+    save_images(images, dir, img_path)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', required=True)
     parser.add_argument('--input_image', required=True)
-    parser.add_argument('--output_dir', default='outputimages')
+    parser.add_argument('--output_dir', default='out_put_images')
     args = parser.parse_args()
-    testimg(args.input_image, args.weights)
+    testimg(args.input_image, args.weights, args.output_dir)
