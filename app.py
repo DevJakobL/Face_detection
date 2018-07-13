@@ -60,6 +60,7 @@ def save_images(images, output_dir, old_img_path):
         img_parth = os.path.join(os.getcwd(), '%s/%s_%i.%s' % (output_dir, ln[0], i, ln[1]))
         print img_parth
         cv2.imwrite(img_parth, im)
+        i += 1
 
 
 def testimg(img_path, weights, dir):
@@ -96,7 +97,7 @@ def testimg(img_path, weights, dir):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', required=True)
+    parser.add_argument('--weights', default='saved_modules/2018_07_10_22.04/save.ckpt-4000')
     parser.add_argument('--input_image', required=True)
     parser.add_argument('--output_dir', default='out_put_images')
     args = parser.parse_args()
