@@ -1,7 +1,7 @@
 {
     "data": {
         "train_idl": "data/wider_train.json",
-        "test_idl": "data/wider_val.json",
+        "test_idl": "data/wider_test.json",
         "truncate_data": false
     },
     "logging": {
@@ -9,7 +9,7 @@
         "save_iter": 1000
     },
     "solver": {
-        "opt": "SGD",
+        "opt": "Adam",
         "use_jitter": false,
         "rnd_seed": 1,
         "epsilon": 0.00001,

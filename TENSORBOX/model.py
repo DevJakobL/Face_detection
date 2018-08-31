@@ -574,7 +574,7 @@ class TensorBox(object):
             data_dir = os.path.dirname(test_boxes)
             image_dir = self.get_image_dir(weights, expname, test_boxes)
             subprocess.call('mkdir -p %s' % image_dir, shell=True)
-            for i in range(5): #range(len(true_annolist)):
+            for i in range(len(true_annolist)):
                 true_anno = true_annolist[i]
                 orig_img = cv2.imread(true_anno.imageName)[:, :, :3]
                 cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
@@ -589,8 +589,7 @@ class TensorBox(object):
 
                 pred_anno.rects = rects
                 pred_anno.imagePath = os.path.abspath(data_dir)
-                pred_anno = rescale_boxes((self.H["image_height"], self.H["image_width"]), pred_anno, orig_img.shape[0],
-                                          orig_img.shape[1])
+                pred_anno = rescale_boxes((self.H["image_height"], self.H["image_width"]), pred_anno, orig_img.shape[0], orig_img.shape[1])
                 pred_annolist.append(pred_anno)
 
                 imname = '%s/%s' % (image_dir, os.path.basename(true_anno.imageName))
