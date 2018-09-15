@@ -9,7 +9,7 @@
         "save_iter": 1000
     },
     "solver": {
-        "opt": "Adam",
+        "opt": "RMS",
         "use_jitter": false,
         "rnd_seed": 1,
         "epsilon": 0.00001,

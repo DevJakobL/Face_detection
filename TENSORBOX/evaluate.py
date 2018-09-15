@@ -22,6 +22,7 @@ def main():
     hypes_file = '%s/hypes.json' % os.path.dirname(args.weights)
     with open(hypes_file, 'r') as f:
         H = json.load(f)
+
     expname = args.expname + '_' if args.expname else ''
     pred_boxes = '%s.%s%s' % (args.weights, expname, os.path.basename(args.test_boxes))
     true_boxes = '%s.gt_%s%s' % (args.weights, expname, os.path.basename(args.test_boxes))
@@ -37,13 +38,13 @@ def main():
     true_annolist.save(true_boxes)
 
     try:
-        rpc_cmd = os.getcwd()+'/utils/annolist/doRPC.py --minOverlap %f %s %s' % (args.iou_threshold, true_boxes, pred_boxes)
+        rpc_cmd = os.getcwd()+'/TENSORBOX/utils/annolist/doRPC.py --minOverlap %f %s %s' % (args.iou_threshold, true_boxes, pred_boxes)
         print('$ %s' % rpc_cmd)
         rpc_output = subprocess.check_output(rpc_cmd, shell=True)
         print(rpc_output)
         txt_file = [line for line in rpc_output.split('\n') if line.strip()][-1]
         output_png = '%s/results.png' % tensorbox.get_image_dir(args.weights, expname, args.test_boxes)
-        plot_cmd = os.getcwd()+'/utils/annolist/plotSimple.py %s --output %s' % (txt_file, output_png)
+        plot_cmd = os.getcwd()+'/TENSORBOX/utils/annolist/plotSimple.py %s --output %s' % (txt_file, output_png)
         print('$ %s' % plot_cmd)
         plot_output = subprocess.check_output(plot_cmd, shell=True)
         print('output results at: %s' % plot_output)
