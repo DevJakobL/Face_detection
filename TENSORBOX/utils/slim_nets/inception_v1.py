@@ -19,11 +19,16 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import sys
 
 slim = tf.contrib.slim
 trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 
-from TENSORBOX.utils import tf_concat
+if 'darwin' in sys.platform:
+    from TENSORBOX.utils import tf_concat
+else:
+    from utils import tf_concat
+
 
 
 def inception_v1_base(inputs,

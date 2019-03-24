@@ -596,4 +596,5 @@ class TensorBox(object):
                 cv2.imwrite(imname, new_img)
                 if i % 25 == 0:
                     print(i)
+
         return pred_annolist, true_annolist
