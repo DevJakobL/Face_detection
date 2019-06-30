@@ -44,6 +44,7 @@ def train():
 def val():
     cratejson(wider_val, 'data/wider_val.json')
     print "ende val"
+
 def test():
     with open("data/wider_test.json", 'w') as f:
         f.write(json.dumps(tdata, indent=4))

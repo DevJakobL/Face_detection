@@ -260,7 +260,7 @@ class TensorBox(object):
             outer_boxes = tf.reshape(boxes, [outer_size, self.H['rnn_len'], 4])
             outer_flags = tf.cast(tf.reshape(flags, [outer_size, self.H['rnn_len']]), 'int32')
             if self.H['use_lstm']:
-                hungarian_module = tf.load_op_library('utils/hungarian/hungarian.so')
+                hungarian_module = tf.load_op_library('TENSORBOX/utils/hungarian/hungarian.so')
                 assignments, classes, perm_truth, pred_mask = (
                     hungarian_module.hungarian(pred_boxes, outer_boxes, outer_flags, self.H['solver']['hungarian_iou']))
             else:
