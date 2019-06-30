@@ -576,6 +576,7 @@ class TensorBox(object):
             subprocess.call('mkdir -p %s' % image_dir, shell=True)
             for i in range(len(true_annolist)):
                 true_anno = true_annolist[i]
+                print(true_anno.imageName)
                 orig_img = cv2.imread(true_anno.imageName)[:, :, :3]
                 cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
                 img = cv2.resize(orig_img, (self.H["image_width"], self.H["image_height"]))

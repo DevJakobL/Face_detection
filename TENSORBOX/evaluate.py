@@ -43,7 +43,7 @@ def main():
         rpc_output = subprocess.check_output(rpc_cmd, shell=True)
         print(rpc_output)
         txt_file = [line for line in rpc_output.split('\n') if line.strip()][-1]
-        output_png = '%s/results.png' % tensorbox.get_image_dir(args.weights, expname, args.test_boxes)
+        output_png = '%s/results-100000.png' % tensorbox.get_image_dir(args.weights, expname, args.test_boxes)
         plot_cmd = os.getcwd()+'/TENSORBOX/utils/annolist/plotSimple.py %s --output %s' % (txt_file, output_png)
         print('$ %s' % plot_cmd)
         plot_output = subprocess.check_output(plot_cmd, shell=True)
