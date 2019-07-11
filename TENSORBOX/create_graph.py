@@ -184,12 +184,7 @@ def create_graph(args, H):
     H["grid_height"] = H["image_height"] / H["region_size"]
     x_in = tf.placeholder(tf.float32, name='x_in', shape=[H['image_height'], H['image_width'], 3])
     if H['use_rezoom']:
-        pred_boxes, pred_logits, pred_confidences, pred_confs_deltas, pred_boxes_deltas = build_forward(H,
-                                                                                                                  tf.expand_dims(
-                                                                                                                      x_in,
-                                                                                                                      0),
-                                                                                                                  'test',
-                                                                                                                  reuse=None)
+        pred_boxes, pred_logits, pred_confidences, pred_confs_deltas, pred_boxes_deltas = build_forward(H,                                                                                                         reuse=None)
         grid_area = H['grid_height'] * H['grid_width']
         pred_confidences = tf.reshape(tf.nn.softmax(tf.reshape(pred_confs_deltas, [grid_area * H['rnn_len'], 2])),
                                       [grid_area, H['rnn_len'], 2])
